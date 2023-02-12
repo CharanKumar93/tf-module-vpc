@@ -1,3 +1,3 @@
 variable "cidr_block" {}
 variable "env" {}
-variable "var.subnets_cidr" {}
+variable "subnets_cidr" {}
