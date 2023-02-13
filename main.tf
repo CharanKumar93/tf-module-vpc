@@ -6,14 +6,25 @@ resource "aws_vpc" "main" {
   )
 }
 
-resource "aws_subnet" "main" {
-  count      = length(var.subnets_cidr)
+resource "aws_subnet" "public" {
+  count      = length(public_subnets_cidr)
   vpc_id     = aws_vpc.main.id
-  cidr_block = var.subnets_cidr[count.index]
+  cidr_block = var.public_cidr[count.index]
 
   tags       = merge(
     local.common_tags,
-    { Name = "${var.env}-subnet-${count.index + 1}" }
+    { Name = "${var.env}-public-subnet-${count.index + 1}" }
+  )
+}
+
+resource "aws_subnet" "private" {
+  count      = length(private_subnets_cidr)
+  vpc_id     = aws_vpc.main.id
+  cidr_block = var.private_cidr[count.index]
+
+  tags       = merge(
+    local.common_tags,
+    { Name = "${var.env}-private-subnet-${count.index + 1}" }
   )
 }
 
@@ -28,24 +39,6 @@ resource "aws_vpc_peering_connection" "peer" {
     )
   }
 
-resource "aws_route" "default" {
-  route_table_id            = aws_vpc.main.default_route_table_id
-  destination_cidr_block    = "172.31.0.0/16"
-  vpc_peering_connection_id = aws_vpc_peering_connection.peer.id
-}
-
-resource "aws_route" "igw-route" {
-  route_table_id            = aws_vpc.main.default_route_table_id
-  destination_cidr_block    = "0.0.0.0/0"
-  gateway_id = aws_internet_gateway.igw.id
-}
-
-resource "aws_route" "default-vpc" {
-  route_table_id            = data.aws_vpc.default.main_route_table_id
-  destination_cidr_block    = var.cidr_block
-  vpc_peering_connection_id = aws_vpc_peering_connection.peer.id
-}
-
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 
@@ -55,7 +48,7 @@ resource "aws_internet_gateway" "igw" {
     )
   }
 
-
+*
 data "aws_ami" "centos8" {
   most_recent = true
   name_regex  = "Centos-8-DevOps-Practice"
@@ -108,3 +101,4 @@ resource "aws_security_group" "allow_tls" {
     Name = "allow_tls"
   }
 }
+*
