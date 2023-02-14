@@ -1,6 +1,6 @@
 resource "aws_vpc" "main" {
   cidr_block = var.cidr_block
-  tags       = merge(
+  tags = merge(
     local.common_tags,
     { Name = "${var.env}-vpc" }
   )
@@ -11,7 +11,7 @@ resource "aws_subnet" "public" {
   vpc_id     = aws_vpc.main.id
   cidr_block = var.public_subnets_cidr[count.index]
 
-  tags       = merge(
+  tags = merge(
     local.common_tags,
     { Name = "${var.env}-public-subnet-${count.index + 1}" }
   )
@@ -22,7 +22,7 @@ resource "aws_subnet" "private" {
   vpc_id     = aws_vpc.main.id
   cidr_block = var.private_subnets_cidr[count.index]
 
-  tags       = merge(
+  tags = merge(
     local.common_tags,
     { Name = "${var.env}-private-subnet-${count.index + 1}" }
   )
@@ -33,7 +33,7 @@ resource "aws_vpc_peering_connection" "peer" {
   peer_vpc_id   = var.default_vpc_id
   vpc_id        = aws_vpc.main.id
   auto_accept = true
-  tags       = merge(
+  tags = merge(
     local.common_tags,
     { Name = "${var.env}-peering" }
     )
@@ -42,7 +42,7 @@ resource "aws_vpc_peering_connection" "peer" {
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 
-  tags       = merge(
+  tags = merge(
     local.common_tags,
     { Name = "${var.env}-igw" }
     )
@@ -61,7 +61,7 @@ resource "aws_route_table" "public" {
     vpc_peering_connection_id = aws_vpc_peering_connection.peer.id
   }
 
-  tags       = merge(
+  tags = merge(
     local.common_tags,
     { Name = "${var.env}-public-route-table" }
     )
@@ -81,7 +81,7 @@ resource "aws_nat_gateway" "ngw" {
   allocation_id = aws_eip.ngw-eip.id
   subnet_id     = aws_subnet.public.*.id[0]
 
-  tags       = merge(
+  tags = merge(
     local.common_tags,
     { Name = "${var.env}-ngw" }
     )
@@ -101,7 +101,7 @@ resource "aws_route_table" "private" {
     nat_gateway_id = aws_nat_gateway.ngw.id
   }
 
-  tags       = merge(
+  tags = merge(
     local.common_tags,
     { Name = "${var.env}-private-route-table" }
     )
