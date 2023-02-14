@@ -46,41 +46,95 @@ resource "aws_internet_gateway" "igw" {
     local.common_tags,
     { Name = "${var.env}-igw" }
     )
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
   }
+
+  route {
+    cidr_block                = "data.aws_vpc.default.cidr_block"
+    vpc_peering_connection_id = aws_aws_vpc_peering_connection.peer.id
+  }
+
+  tags       = merge(
+    local.common_tags,
+    { Name = "${var.env}-public-route-table" }
+    )
+}
+
+resource "aws_route_table_association" "public-rt-assoc" {
+  count          = length(aws_subnet.public)
+  subnet_id      = aws_subnet.public.*.id[count.index]
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_eip" "ngw-eip" {
+  vpc          = true
+}
+
+resource "aws_nat_gateway" "example" {
+  allocation_id = aws_eip.ngw-eip.id
+  subnet_id     = aws_subnet.public.*.id[0]
+
+  tags       = merge(
+    local.common_tags,
+    { Name = "${var.env}-ngw" }
+    )
+  //depends_on = [aws_internet_gateway.example]
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block                = "data.aws_vpc.default.cidr_block"
+    vpc_peering_connection_id = aws_vpc_peering_connection.peer.id
+  }
+
+  route {
+    cidr_block                = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.ngw.id
+      }
+
+  tags       = merge(
+    local.common_tags,
+    { Name = "${var.env}-private-route-table" }
+    )
+}
+
+resource "aws_route_table_association" "private-rt-assoc" {
+  count          = length(aws_subnet.private)
+  subnet_id      = aws_subnet.private.*.id[count.index]
+  route_table_id = aws_route_table.private.id
+}
 
 
 // Create EC2
-//data "aws_ami" "centos8" {
-//  most_recent = true
-//  name_regex  = "Centos-8-DevOps-Practice"
-//  owners      = ["973714476881"]
-//}
+data "aws_ami" "centos8" {
+  most_recent = true
+  name_regex  = "Centos-8-DevOps-Practice"
+  owners      = ["973714476881"]
+}
 
-//resource "aws_instance" "web" {
-//  ami                    = data.aws_ami.centos8.id
-//  instance_type          = "t3.micro"
-//  vpc_security_group_ids = [aws_security_group.allow_tls.id]
-//  subnet_id = aws_subnet.main.*.id[0]
+resource "aws_instance" "web" {
+  ami                    = data.aws_ami.centos8.id
+  instance_type          = "t3.micro"
+  vpc_security_group_ids = [aws_security_group.allow_tls.id]
+  subnet_id              = aws_subnet.private.*.id[0]
 
   tags = {
     Name = "test-centos8"
   }
 }
 
-
-
-terraform {
-  backend "s3" {
-    bucket = "terraform-c93"
-    key    = "05-remote-state/terraform.tfstate"
-    region = "us-east-1"
-  }
-}
-
 resource "aws_security_group" "allow_tls" {
   name        = "allow_tls"
   description = "Allow TLS inbound traffic"
-  vpc_id = aws_vpc.main.id
 
   ingress {
     description = "TLS from VPC"
@@ -102,4 +156,3 @@ resource "aws_security_group" "allow_tls" {
     Name = "allow_tls"
   }
 }
-*
