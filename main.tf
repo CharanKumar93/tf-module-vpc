@@ -36,7 +36,7 @@ resource "aws_internet_gateway" "igw" {
 //    )
 //  //depends_on = [aws_internet_gateway.example]
 //
-}
+//}
 
 resource "aws_route" "r" {
   route_table_id            = data.aws_vpc.default.main_route_table_id
