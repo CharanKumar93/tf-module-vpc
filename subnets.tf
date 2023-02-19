@@ -33,3 +33,5 @@ module "private_subnets" {
   tags                      = local.common_tags
   nat_gw_id                 = aws_nat_gateway.ngw.id
 }
+
+
